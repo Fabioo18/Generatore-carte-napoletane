@@ -1,6 +1,7 @@
-const CACHE_NAME = "carte-napoletane-v2"; // Incrementa la versione quando aggiorni i file
+// service-worker.js
+const CACHE_NAME = "carte-napoletane-v4";
 
-// Lista di tutti i file da mettere in cache
+// Lista completa di tutti i file da mettere in cache
 const urlsToCache = [
   "/",
   "/index.html",
@@ -47,7 +48,7 @@ const urlsToCache = [
   "/static/38_Otto_di_bastoni.jpg",
   "/static/39_Nove_di_bastoni.jpg",
   "/static/40_Dieci_di_bastoni.jpg",
-  // Audio
+  // Audio carte
   "/static/Asso_di_denari.mp3",
   "/static/Due_di_denari.mp3",
   "/static/Tre_di_denari.mp3",
@@ -90,26 +91,12 @@ const urlsToCache = [
   "/static/Dieci_di_bastoni.mp3"
 ];
 
-// Installazione: cache dei file
+// Installazione: cache di tutti i file
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
-});
-
-// Fetch: serve dalla cache, fallback a index.html se offline
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) return cachedResponse;
-
-      // fallback per navigazione pagina
-      return fetch(event.request).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-      });
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -121,6 +108,23 @@ self.addEventListener("activate", event => {
       Promise.all(keys.map(key => {
         if (!cacheWhitelist.includes(key)) return caches.delete(key);
       }))
-    )
+    ).then(() => self.clients.claim())
+  );
+});
+
+// Fetch: serve dalla cache e fallback offline
+self.addEventListener("fetch", event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(cachedResponse => {
+        if (cachedResponse) return cachedResponse;
+
+        return fetch(event.request).catch(() => {
+          // fallback per navigazione pagina
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+      })
   );
 });
