@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore Carte Napoletane</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            color: white;
+            padding: 20px;
+            background-image: url('static/sfondo.jpg'); 
+            background-size: cover;       /* fa sì che l'immagine copra tutto lo sfondo */
+            background-repeat: no-repeat; /* evita che si ripeta */
+            background-attachment: fixed;
+            }
+
+            h1, h2, h3, li {
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.7); /* rendi il testo più leggibile sullo sfondo */
+    }
+
+    button {
+        padding: 12px 25px;
+        margin: 10px;
+        font-size: 16px;
+        cursor: pointer;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(145deg, #ffcc33, #ff9900);
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        transition: all 0.2s ease-in-out;
+    }
+
+    button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 10px rgba(0,0,0,0.4);
+        background: linear-gradient(145deg, #ffdd55, #ffaa00);
+    }
+    #cartaImg {
+        width: 200px;
+        height: auto;
+        margin: 20px 0;
+        border: 3px solid #fff;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    #cartaImg.retro {
+    border: none;      /* nessun bordo */
+}
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    li {
+        margin: 5px 0;
+        font-size: 18px;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+    }
+    #customAlert {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #222;
+    color: #ffcc33;
+    padding: 20px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    z-index: 1000;
+    text-align: center;
+    font-size: 18px;
+    }
+
+    #customAlert button {
+        margin-top: 15px;
+        padding: 8px 20px;
+        background-color: #ff9900;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .hidden {
+        display: none;
+    }
+    </style>
+</head>
+<body>
+
+<h1>Generatore Carte Napoletane (QUINTO)</h1>
+
+<button onclick="pescaCarta()">Pesca una carta</button>
+<button onclick="resetMazzo()">Reset Mazzo</button>
+
+<div>
+    <img id="cartaImg" src="" alt="">
+</div>
+<h3 id="cartaNome">Nessuna carta estratta</h3>
+
+<h2>Carte uscite:</h2>
+<ul id="storico"></ul>
+
+<div id="customAlert" class="hidden">
+    <span id="alertMessage"></span>
+    <button onclick="closeAlert()">OK</button>
+</div>
+
+<script>
+let mazzo = [];
+let storico = [];
+
+const carte = [
+    // DENARI
+    {nome:"Asso di Denari", file:"01_Asso_di_denari.jpg", audio:"Asso_di_denari.mp3"},
+    {nome:"Due di Denari", file:"02_Due_di_denari.jpg", audio:"Due_di_denari.mp3"},
+    {nome:"Tre di Denari", file:"03_Tre_di_denari.jpg", audio:"Tre_di_denari.mp3"},
+    {nome:"Quattro di Denari", file:"04_Quattro_di_denari.jpg", audio:"Quattro_di_denari.mp3"},
+    {nome:"Cinque di Denari", file:"05_Cinque_di_denari.jpg", audio:"Cinque_di_denari.mp3"},
+    {nome:"Sei di Denari", file:"06_Sei_di_denari.jpg", audio:"Sei_di_denari.mp3"},
+    {nome:"Sette di Denari", file:"07_Sette_di_denari.jpg", audio:"Sette_di_denari.mp3"},
+    {nome:"Otto di Denari", file:"08_Otto_di_denari.jpg", audio:"Otto_di_denari.mp3"},
+    {nome:"Nove di Denari", file:"09_Nove_di_denari.jpg", audio:"Nove_di_denari.mp3"},
+    {nome:"Dieci di Denari", file:"10_Dieci_di_denari.jpg", audio:"Dieci_di_denari.mp3"},
+    // COPPE
+    {nome:"Asso di Coppe", file:"11_Asso_di_coppe.jpg", audio:"Asso_di_coppe.mp3"},
+    {nome:"Due di Coppe", file:"12_Due_di_coppe.jpg", audio:"Due_di_coppe.mp3"},
+    {nome:"Tre di Coppe", file:"13_Tre_di_coppe.jpg", audio:"Tre_di_coppe.mp3"},
+    {nome:"Quattro di Coppe", file:"14_Quattro_di_coppe.jpg", audio:"Quattro_di_coppe.mp3"},
+    {nome:"Cinque di Coppe", file:"15_Cinque_di_coppe.jpg", audio:"Cinque_di_coppe.mp3"},
+    {nome:"Sei di Coppe", file:"16_Sei_di_coppe.jpg", audio:"Sei_di_coppe.mp3"},
+    {nome:"Sette di Coppe", file:"17_Sette_di_coppe.jpg", audio:"Sette_di_coppe.mp3"},
+    {nome:"Otto di Coppe", file:"18_Otto_di_coppe.jpg", audio:"Otto_di_coppe.mp3"},
+    {nome:"Nove di Coppe", file:"19_Nove_di_coppe.jpg", audio:"Nove_di_coppe.mp3"},
+    {nome:"Dieci di Coppe", file:"20_Dieci_di_coppe.jpg", audio:"Dieci_di_coppe.mp3"},
+    // SPADE
+    {nome:"Asso di Spade", file:"21_Asso_di_spade.jpg", audio:"Asso_di_spade.mp3"},
+    {nome:"Due di Spade", file:"22_Due_di_spade.jpg", audio:"Due_di_spade.mp3"},
+    {nome:"Tre di Spade", file:"23_Tre_di_spade.jpg", audio:"Tre_di_spade.mp3"},
+    {nome:"Quattro di Spade", file:"24_Quattro_di_spade.jpg", audio:"Quattro_di_spade.mp3"},
+    {nome:"Cinque di Spade", file:"25_Cinque_di_spade.jpg", audio:"Cinque_di_spade.mp3"},
+    {nome:"Sei di Spade", file:"26_Sei_di_spade.jpg", audio:"Sei_di_spade.mp3"},
+    {nome:"Sette di Spade", file:"27_Sette_di_spade.jpg", audio:"Sette_di_spade.mp3"},
+    {nome:"Otto di Spade", file:"28_Otto_di_spade.jpg", audio:"Otto_di_spade.mp3"},
+    {nome:"Nove di Spade", file:"29_Nove_di_spade.jpg", audio:"Nove_di_spade.mp3"},
+    {nome:"Dieci di Spade", file:"30_Dieci_di_spade.jpg", audio:"Dieci_di_spade.mp3"},
+    // BASTONI
+    {nome:"Asso di Bastoni", file:"31_Asso_di_bastoni.jpg", audio:"Asso_di_bastoni.mp3"},
+    {nome:"Due di Bastoni", file:"32_Due_di_bastoni.jpg", audio:"Due_di_bastoni.mp3"},
+    {nome:"Tre di Bastoni", file:"33_Tre_di_bastoni.jpg", audio:"Tre_di_bastoni.mp3"},
+    {nome:"Quattro di Bastoni", file:"34_Quattro_di_bastoni.jpg", audio:"Quattro_di_bastoni.mp3"},
+    {nome:"Cinque di Bastoni", file:"35_Cinque_di_bastoni.jpg", audio:"Cinque_di_bastoni.mp3"},
+    {nome:"Sei di Bastoni", file:"36_Sei_di_bastoni.jpg", audio:"Sei_di_bastoni.mp3"},
+    {nome:"Sette di Bastoni", file:"37_Sette_di_bastoni.jpg", audio:"Sette_di_bastoni.mp3"},
+    {nome:"Otto di Bastoni", file:"38_Otto_di_bastoni.jpg", audio:"Otto_di_bastoni.mp3"},
+    {nome:"Nove di Bastoni", file:"39_Nove_di_bastoni.jpg", audio:"Nove_di_bastoni.mp3"},
+    {nome:"Dieci di Bastoni", file:"40_Dieci_di_bastoni.jpg", audio:"Dieci_di_bastoni.mp3"}
+];
+
+function initMazzo() {
+    mazzo = [...carte];
+    storico = [];
+
+    const img = document.getElementById("cartaImg");
+    img.src = "static/Carte_Napoletane_retro.jpg";
+    img.alt = "Retro della carta";
+    img.classList.add("retro");   // applica stile senza bordi
+    img.classList.remove("nuova");
+
+    document.getElementById("cartaNome").textContent = "Mazzo pronto!";
+    const msg = document.getElementById("messaggio");
+    if(msg) msg.textContent = "";
+
+    aggiornaStorico();
+}
+
+
+let audioCorrente = null;
+
+function pescaCarta() {
+    if (mazzo.length === 0) {
+        showAlert("🎴 Il mazzo è finito! Premi 'Reset Mazzo' per ricominciare.");
+        return;
+    }
+
+    const i = Math.floor(Math.random() * mazzo.length);
+    const carta = mazzo.splice(i,1)[0];
+    storico.push(carta);
+
+    document.getElementById("cartaImg").src = "static/" + carta.file;
+    document.getElementById("cartaImg").alt = carta.nome;
+    document.getElementById("cartaNome").textContent = carta.nome;
+
+    if(audioCorrente) audioCorrente.pause(); // ferma eventuale audio in riproduzione
+    audioCorrente = new Audio("static/" + carta.audio);
+    audioCorrente.play();
+
+    aggiornaStorico();
+}
+
+function aggiornaStorico() {
+    const list = document.getElementById("storico");
+    list.innerHTML = "";
+    // Prende le ultime 10 carte e inverte l'ordine
+    const ultimeCarte = storico.slice(-10).reverse();
+    ultimeCarte.forEach(c => {
+        const li = document.createElement("li");
+        const img = document.createElement("img");
+        img.src = "static/" + c.file;
+        img.alt = c.nome;
+        img.width = 50;
+        li.appendChild(img);
+        list.appendChild(li);
+    });
+}
+
+
+function resetMazzo() {
+    initMazzo();
+}
+
+function showAlert(msg) {
+    const alertDiv = document.getElementById("customAlert");
+    document.getElementById("alertMessage").textContent = msg;
+    alertDiv.classList.remove("hidden");
+}
+
+function closeAlert() {
+    document.getElementById("customAlert").classList.add("hidden");
+}
+
+initMazzo();
+</script>
+
+</body>
+</html>
