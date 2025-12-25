@@ -2,6 +2,7 @@ const CACHE_NAME = "carte-napoletane-v2"; // Incrementa la versione quando aggio
 
 // Lista di tutti i file da mettere in cache
 const urlsToCache = [
+  "/",
   "/index.html",
   "/static/sfondo.jpg",
   "/static/Carte_Napoletane_retro.jpg",
@@ -100,11 +101,10 @@ self.addEventListener("install", event => {
 self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+      if (cachedResponse) return cachedResponse;
+
+      // fallback per navigazione pagina
       return fetch(event.request).catch(() => {
-        // fallback solo per navigazione pagina
         if (event.request.mode === 'navigate') {
           return caches.match('/index.html');
         }
@@ -118,11 +118,9 @@ self.addEventListener("activate", event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => {
-          if (!cacheWhitelist.includes(key)) return caches.delete(key);
-        })
-      )
+      Promise.all(keys.map(key => {
+        if (!cacheWhitelist.includes(key)) return caches.delete(key);
+      }))
     )
   );
 });
