@@ -99,10 +99,12 @@ const ASSETS = [
 async function safeCache(cache, urls) {
   for (const url of urls) {
     try {
-      await cache.add(url);
-      console.log("✅ Cache:", url);
-    } catch {
-      console.warn("❌ Skip:", url);
+      const res = await fetch(url, { cache: "no-cache" }); // forziamo il fetch dal server
+      if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+      await cache.put(url, res.clone());
+      console.log("✅ Cached:", url);
+    } catch (err) {
+      console.warn("❌ Skip:", url, err);
     }
   }
 }
