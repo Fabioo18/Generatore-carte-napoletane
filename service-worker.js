@@ -1,6 +1,6 @@
-const CACHE_NAME = "carte-napoletane-v9";
+const CACHE_NAME = "carte-napoletane-v10";
 
-// asset fondamentali (pochi e sicuri)
+/* asset fondamentali */
 const CORE_ASSETS = [
   "/",
   "/index.html",
@@ -8,7 +8,7 @@ const CORE_ASSETS = [
   "/static/Carte_Napoletane_retro.jpg"
 ];
 
-// tutti gli asset delle carte (immagini + audio)
+/* immagini + audio */
 const ASSETS = [
   // IMMAGINI
   "/static/01_Asso_di_denari.jpg",
@@ -51,7 +51,6 @@ const ASSETS = [
   "/static/38_Otto_di_bastoni.jpg",
   "/static/39_Nove_di_bastoni.jpg",
   "/static/40_Dieci_di_bastoni.jpg",
-
 
   // AUDIO
   "/static/Asso_di_denari.mp3",
@@ -96,47 +95,55 @@ const ASSETS = [
   "/static/Dieci_di_bastoni.mp3"
 ];
 
-// funzione sicura per cache
+/* cache sicura */
 async function safeCache(cache, urls) {
   for (const url of urls) {
     try {
       await cache.add(url);
       console.log("✅ Cache:", url);
-    } catch (e) {
+    } catch {
       console.warn("❌ Skip:", url);
     }
   }
 }
 
-// INSTALL
+/* INSTALL */
 self.addEventListener("install", event => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      console.log("📦 Cache core");
       await safeCache(cache, CORE_ASSETS);
-
-      console.log("📦 Cache assets");
       await safeCache(cache, ASSETS);
     })()
   );
   self.skipWaiting();
 });
 
-// FETCH (cache-first)
+/* FETCH – OFFLINE SAFE */
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request).then(res => res || fetch(event.request))
+    (async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+
+      if (!self.navigator.onLine) {
+        return new Response("", { status: 404 });
+      }
+
+      try {
+        return await fetch(event.request);
+      } catch {
+        return new Response("", { status: 404 });
+      }
+    })()
   );
 });
 
-// ACTIVATE
+/* ACTIVATE */
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => key !== CACHE_NAME && caches.delete(key))
-      )
+      Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null)))
     )
   );
   self.clients.claim();
