@@ -1,4 +1,4 @@
-const CACHE_NAME = "carte-napoletane-v11";
+const CACHE_NAME = "carte-napoletane-v12";
 
 /* asset fondamentali */
 const CORE_ASSETS = [
@@ -96,7 +96,7 @@ const ASSETS = [
 ];
 
 
-// Funzione sicura per cache (ignora 206 Partial)
+// Funzione sicura per cache (ignora partial/206)
 async function safeCache(cache, urls) {
   for (const url of urls) {
     try {
@@ -143,7 +143,10 @@ self.addEventListener("fetch", event => {
           if (event.request.destination === "image") {
             return caches.match("/static/Carte_Napoletane_retro.jpg");
           }
-          // fallback generico
+          // fallback per audio
+          if (event.request.destination === "audio") {
+            return new Response(new Blob([], { type: "audio/mpeg" }));
+          }
           return new Response("", { status: 404 });
         });
     })
