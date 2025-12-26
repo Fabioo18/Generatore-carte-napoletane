@@ -1,4 +1,4 @@
-const CACHE_NAME = "carte-napoletane-v10";
+const CACHE_NAME = "carte-napoletane-v11";
 
 /* asset fondamentali */
 const CORE_ASSETS = [
@@ -95,16 +95,20 @@ const ASSETS = [
   "/static/Dieci_di_bastoni.mp3"
 ];
 
-/* cache sicura */
+/* cache sicura (ignora partial responses) */
 async function safeCache(cache, urls) {
   for (const url of urls) {
     try {
-      const res = await fetch(url, { cache: "no-cache" }); // forziamo il fetch dal server
-      if (!res.ok) throw new Error(`Failed to fetch ${url}`);
-      await cache.put(url, res.clone());
+      const response = await fetch(url, { cache: "no-store" });
+      // ignora partial responses
+      if (!response.ok || response.status === 206) {
+        console.warn("❌ Skip:", url, "(partial or error response)");
+        continue;
+      }
+      await cache.put(url, response.clone());
       console.log("✅ Cached:", url);
-    } catch (err) {
-      console.warn("❌ Skip:", url, err);
+    } catch (e) {
+      console.warn("❌ Skip:", url, e);
     }
   }
 }
@@ -114,27 +118,29 @@ self.addEventListener("install", event => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
+      console.log("📦 Caching core assets...");
       await safeCache(cache, CORE_ASSETS);
+      console.log("📦 Caching all card assets...");
       await safeCache(cache, ASSETS);
     })()
   );
   self.skipWaiting();
 });
 
-/* FETCH – OFFLINE SAFE */
+/* FETCH – cache first */
 self.addEventListener("fetch", event => {
   event.respondWith(
     (async () => {
       const cached = await caches.match(event.request);
       if (cached) return cached;
 
-      if (!self.navigator.onLine) {
-        return new Response("", { status: 404 });
-      }
-
       try {
         return await fetch(event.request);
       } catch {
+        // fallback per offline
+        if (event.request.destination === "image") {
+          return caches.match("/static/Carte_Napoletane_retro.jpg");
+        }
         return new Response("", { status: 404 });
       }
     })()
@@ -145,7 +151,7 @@ self.addEventListener("fetch", event => {
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null)))
+      Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null))
     )
   );
   self.clients.claim();
