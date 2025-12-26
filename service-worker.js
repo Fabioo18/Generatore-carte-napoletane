@@ -1,4 +1,4 @@
-const CACHE_NAME = "carte-napoletane-v12";
+const CACHE_NAME = "carte-napoletane-v13";
 
 /* asset fondamentali */
 const CORE_ASSETS = [
@@ -96,16 +96,16 @@ const ASSETS = [
 ];
 
 
-// Funzione sicura per cache (ignora partial/206)
+// caching sicuro: salva solo se status 200
 async function safeCache(cache, urls) {
   for (const url of urls) {
     try {
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok || response.status !== 200) {
-        console.warn("❌ Skip non-200 or partial:", url, response.status);
+      const resp = await fetch(url);
+      if (!resp.ok || resp.status !== 200) {
+        console.warn("❌ Skip:", url, resp.status);
         continue;
       }
-      await cache.put(url, response.clone());
+      await cache.put(url, resp.clone());
       console.log("✅ Cached:", url);
     } catch (err) {
       console.warn("❌ Error caching:", url, err);
@@ -113,51 +113,38 @@ async function safeCache(cache, urls) {
   }
 }
 
-// INSTALL
+// INSTALL: cache tutto
 self.addEventListener("install", event => {
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      console.log("📦 Caching CORE_ASSETS...");
-      await safeCache(cache, CORE_ASSETS);
-      console.log("📦 Caching ASSETS...");
-      await safeCache(cache, ASSETS);
-    })()
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    console.log("📦 Caching CORE_ASSETS...");
+    await safeCache(cache, CORE_ASSETS);
+    console.log("📦 Caching ASSETS...");
+    await safeCache(cache, ASSETS);
+  })());
   self.skipWaiting();
 });
 
-// FETCH (cache-first + fallback)
+// FETCH: cache-first con fallback
 self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
-
-      return fetch(event.request)
-        .then(resp => {
-          if (!resp.ok) throw new Error("Network response not ok");
-          return resp;
-        })
-        .catch(() => {
-          // fallback per immagini
-          if (event.request.destination === "image") {
-            return caches.match("/static/Carte_Napoletane_retro.jpg");
-          }
-          // fallback per audio
-          if (event.request.destination === "audio") {
-            return new Response(new Blob([], { type: "audio/mpeg" }));
-          }
-          return new Response("", { status: 404 });
-        });
+      return fetch(event.request).catch(() => {
+        if (event.request.destination === "image") {
+          return caches.match("/static/Carte_Napoletane_retro.jpg");
+        }
+        return new Response("", { status: 404 });
+      });
     })
   );
 });
 
-// ACTIVATE
+// ACTIVATE: cancella vecchie cache
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null)))
+      Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null))
     )
   );
   self.clients.claim();
