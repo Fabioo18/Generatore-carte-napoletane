@@ -1,4 +1,4 @@
-const CACHE_NAME = "carte-napoletane-v16";
+const CACHE_NAME = "carte-napoletane-v17";
 
 const CORE_ASSETS = [
   "/",
@@ -20,15 +20,31 @@ semi.forEach(s => {
   });
 });
 
+// Aggiunge i CORE_ASSETS
 ASSETS = [...CORE_ASSETS, ...ASSETS];
 
+// Funzione per cache-are tutti i file uno alla volta
+async function cacheAllFiles() {
+  const cache = await caches.open(CACHE_NAME);
+  for (const url of ASSETS) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP error! ${response.status}`);
+      await cache.put(url, response.clone());
+      console.log("✅ Cached:", url);
+    } catch (err) {
+      console.error("❌ Failed to cache:", url, err);
+    }
+  }
+}
+
+// INSTALL: cache iniziale sicura
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
-  );
+  event.waitUntil(cacheAllFiles());
   self.skipWaiting();
 });
 
+// FETCH: cache-first + fallback
 self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(async cached => {
@@ -51,6 +67,7 @@ self.addEventListener("fetch", event => {
   );
 });
 
+// ACTIVATE: rimuove vecchie cache
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
