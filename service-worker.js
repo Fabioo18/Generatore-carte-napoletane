@@ -1,26 +1,34 @@
-const CACHE_NAME = "carte-napoletane-v17";
+const CACHE_NAME = "carte-napoletane-v18";
 
-const CORE_ASSETS = [
-  "/",
-  "/index.html",
-  "/static/sfondo.jpg",
-  "/static/Carte_Napoletane_retro.jpg"
-];
-
-// Genera automaticamente tutte le immagini e audio
+// Solo immagini seguono lo schema valori + semi
 const semi = ['denari','coppe','spade','bastoni'];
 const valori = ['01_Asso','02_Due','03_Tre','04_Quattro','05_Cinque','06_Sei','07_Sette','08_Otto','09_Nove','10_Dieci'];
 
 let ASSETS = [];
 
+// Aggiungi immagini
 semi.forEach(s => {
   valori.forEach(v => {
     ASSETS.push(`/static/${v}_di_${s}.jpg`);
-    ASSETS.push(`/static/${v}_di_${s}.mp3`);
   });
 });
 
-// Aggiunge i CORE_ASSETS
+// Aggiungi audio usando i nomi reali
+const audioFiles = [
+  "Asso_di_denari.mp3","Due_di_denari.mp3","Tre_di_denari.mp3","Quattro_di_denari.mp3","Cinque_di_denari.mp3",
+  "Sei_di_denari.mp3","Sette_di_denari.mp3","Otto_di_denari.mp3","Nove_di_denari.mp3","Dieci_di_denari.mp3",
+  "Asso_di_coppe.mp3","Due_di_coppe.mp3","Tre_di_coppe.mp3","Quattro_di_coppe.mp3","Cinque_di_coppe.mp3",
+  "Sei_di_coppe.mp3","Sette_di_coppe.mp3","Otto_di_coppe.mp3","Nove_di_coppe.mp3","Dieci_di_coppe.mp3",
+  "Asso_di_spade.mp3","Due_di_spade.mp3","Tre_di_spade.mp3","Quattro_di_spade.mp3","Cinque_di_spade.mp3",
+  "Sei_di_spade.mp3","Sette_di_spade.mp3","Otto_di_spade.mp3","Nove_di_spade.mp3","Dieci_di_spade.mp3",
+  "Asso_di_bastoni.mp3","Due_di_bastoni.mp3","Tre_di_bastoni.mp3","Quattro_di_bastoni.mp3","Cinque_di_bastoni.mp3",
+  "Sei_di_bastoni.mp3","Sette_di_bastoni.mp3","Otto_di_bastoni.mp3","Nove_di_bastoni.mp3","Dieci_di_bastoni.mp3"
+];
+
+audioFiles.forEach(f => ASSETS.push(`/static/${f}`));
+
+// Aggiungi CORE_ASSETS
+const CORE_ASSETS = ["/","/index.html","/static/sfondo.jpg","/static/Carte_Napoletane_retro.jpg"];
 ASSETS = [...CORE_ASSETS, ...ASSETS];
 
 // Funzione per cache-are tutti i file uno alla volta
