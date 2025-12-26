@@ -1,4 +1,4 @@
-const CACHE_NAME = "carte-napoletane-v7";
+const CACHE_NAME = "carte-napoletane-v8";
 
 // asset fondamentali (pochi e sicuri)
 const CORE_ASSETS = [
@@ -51,6 +51,7 @@ const ASSETS = [
   "/static/38_Otto_di_bastoni.jpg",
   "/static/39_Nove_di_bastoni.jpg",
   "/static/40_Dieci_di_bastoni.jpg",
+
 
   // AUDIO
   "/static/Asso_di_denari.mp3",
