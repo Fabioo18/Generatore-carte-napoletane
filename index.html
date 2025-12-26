@@ -1,129 +1,225 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Generatore Carte Napoletane</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore Carte Napoletane</title>
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#560808">
+    <!-- Favicon & Apple Touch Icons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="icons/favicon-96x96.png">
+    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+    <link rel="shortcut icon" href="icons/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  color: white;
-  padding: 20px;
-  background: url("static/sfondo.jpg") no-repeat center center fixed;
-  background-size: cover;
-}
-h1,h2,h3,li { text-shadow:2px 2px 4px rgba(0,0,0,.7); }
-button {
-  padding:12px 25px;
-  margin:8px;
-  font-size:16px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  background:linear-gradient(145deg,#ffcc33,#ff9900);
-  color:white;
-  font-weight:bold;
-}
-#cartaImg {
-  width:200px;
-  margin:20px 0;
-  border-radius:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,.5);
-}
-.hidden { display:none; }
-</style>
+    <!-- Manifest for PWA -->
+    <link rel="manifest" href="manifest.json">
+
+    <meta name="theme-color" content="#560808">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            color: white;
+            padding: 20px;
+            background-image: url('static/sfondo.jpg'); 
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        h1, h2, h3, li { text-shadow: 2px 2px 4px rgba(0,0,0,0.7); }
+        button {
+            padding: 12px 25px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(145deg, #ffcc33, #ff9900);
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.2s ease-in-out;
+        }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.4);
+            background: linear-gradient(145deg, #ffdd55, #ffaa00);
+        }
+        #cartaImg {
+            width: 200px;
+            height: auto;
+            margin: 20px 0;
+            border: 3px solid #fff;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        #cartaImg.retro { border: none; }
+        ul { list-style: none; padding: 0; }
+        li { margin: 5px 0; font-size: 18px; text-shadow: 1px 1px 3px rgba(0,0,0,0.7); }
+        #customAlert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #222;
+            color: #ffcc33;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 1000;
+            text-align: center;
+            font-size: 18px;
+        }
+        #customAlert button {
+            margin-top: 15px;
+            padding: 8px 20px;
+            background-color: #ff9900;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .hidden { display: none; }
+    </style>
 </head>
-
 <body>
 
 <h1>Generatore Carte Napoletane</h1>
 
 <button onclick="pescaCarta()">Pesca una carta</button>
 <button onclick="resetMazzo()">Reset Mazzo</button>
-<button onclick="scaricaOffline()">📦 Scarica tutto offline</button>
 
 <div>
-  <img id="cartaImg" src="static/Carte_Napoletane_retro.jpg">
+    <img id="cartaImg" src="static/Carte_Napoletane_retro.jpg" alt="Retro della carta" class="retro">
 </div>
+<h3 id="cartaNome">Mazzo pronto!</h3>
 
-<h3 id="cartaNome">Mazzo pronto</h3>
+<h2>Carte uscite:</h2>
 <ul id="storico"></ul>
 
+<div id="customAlert" class="hidden">
+    <span id="alertMessage"></span>
+    <button onclick="closeAlert()">OK</button>
+</div>
+
 <script>
+let mazzo = [];
+let storico = [];
+let audioCorrente = null;
+
 const carte = [
-  {nome:"Asso di Denari", file:"01_Asso_di_denari.jpg", audio:"Asso_di_denari.mp3"},
-  {nome:"Due di Denari", file:"02_Due_di_denari.jpg", audio:"Due_di_denari.mp3"},
-  {nome:"Tre di Denari", file:"03_Tre_di_denari.jpg", audio:"Tre_di_denari.mp3"},
-  {nome:"Quattro di Denari", file:"04_Quattro_di_denari.jpg", audio:"Quattro_di_denari.mp3"},
-  {nome:"Cinque di Denari", file:"05_Cinque_di_denari.jpg", audio:"Cinque_di_denari.mp3"},
-  {nome:"Sei di Denari", file:"06_Sei_di_denari.jpg", audio:"Sei_di_denari.mp3"},
-  {nome:"Sette di Denari", file:"07_Sette_di_denari.jpg", audio:"Sette_di_denari.mp3"},
-  {nome:"Otto di Denari", file:"08_Otto_di_denari.jpg", audio:"Otto_di_denari.mp3"},
-  {nome:"Nove di Denari", file:"09_Nove_di_denari.jpg", audio:"Nove_di_denari.mp3"},
-  {nome:"Dieci di Denari", file:"10_Dieci_di_denari.jpg", audio:"Dieci_di_denari.mp3"},
-  {nome:"Asso di Coppe", file:"11_Asso_di_coppe.jpg", audio:"Asso_di_coppe.mp3"},
-  {nome:"Due di Coppe", file:"12_Due_di_coppe.jpg", audio:"Due_di_coppe.mp3"},
-  {nome:"Tre di Coppe", file:"13_Tre_di_coppe.jpg", audio:"Tre_di_coppe.mp3"},
-  {nome:"Quattro di Coppe", file:"14_Quattro_di_coppe.jpg", audio:"Quattro_di_coppe.mp3"},
-  {nome:"Cinque di Coppe", file:"15_Cinque_di_coppe.jpg", audio:"Cinque_di_coppe.mp3"},
-  {nome:"Sei di Coppe", file:"16_Sei_di_coppe.jpg", audio:"Sei_di_coppe.mp3"},
-  {nome:"Sette di Coppe", file:"17_Sette_di_coppe.jpg", audio:"Sette_di_coppe.mp3"},
-  {nome:"Otto di Coppe", file:"18_Otto_di_coppe.jpg", audio:"Otto_di_coppe.mp3"},
-  {nome:"Nove di Coppe", file:"19_Nove_di_coppe.jpg", audio:"Nove_di_coppe.mp3"},
-  {nome:"Dieci di Coppe", file:"20_Dieci_di_coppe.jpg", audio:"Dieci_di_coppe.mp3"},
-  {nome:"Asso di Spade", file:"21_Asso_di_spade.jpg", audio:"Asso_di_spade.mp3"},
-  {nome:"Due di Spade", file:"22_Due_di_spade.jpg", audio:"Due_di_spade.mp3"},
-  {nome:"Tre di Spade", file:"23_Tre_di_spade.jpg", audio:"Tre_di_spade.mp3"},
-  {nome:"Quattro di Spade", file:"24_Quattro_di_spade.jpg", audio:"Quattro_di_spade.mp3"},
-  {nome:"Cinque di Spade", file:"25_Cinque_di_spade.jpg", audio:"Cinque_di_spade.mp3"},
-  {nome:"Sei di Spade", file:"26_Sei_di_spade.jpg", audio:"Sei_di_spade.mp3"},
-  {nome:"Sette di Spade", file:"27_Sette_di_spade.jpg", audio:"Sette_di_spade.mp3"},
-  {nome:"Otto di Spade", file:"28_Otto_di_spade.jpg", audio:"Otto_di_spade.mp3"},
-  {nome:"Nove di Spade", file:"29_Nove_di_spade.jpg", audio:"Nove_di_spade.mp3"},
-  {nome:"Dieci di Spade", file:"30_Dieci_di_spade.jpg", audio:"Dieci_di_spade.mp3"},
-  {nome:"Asso di Bastoni", file:"31_Asso_di_bastoni.jpg", audio:"Asso_di_bastoni.mp3"},
-  {nome:"Due di Bastoni", file:"32_Due_di_bastoni.jpg", audio:"Due_di_bastoni.mp3"},
-  {nome:"Tre di Bastoni", file:"33_Tre_di_bastoni.jpg", audio:"Tre_di_bastoni.mp3"},
-  {nome:"Quattro di Bastoni", file:"34_Quattro_di_bastoni.jpg", audio:"Quattro_di_bastoni.mp3"},
-  {nome:"Cinque di Bastoni", file:"35_Cinque_di_bastoni.jpg", audio:"Cinque_di_bastoni.mp3"},
-  {nome:"Sei di Bastoni", file:"36_Sei_di_bastoni.jpg", audio:"Sei_di_bastoni.mp3"},
-  {nome:"Sette di Bastoni", file:"37_Sette_di_bastoni.jpg", audio:"Sette_di_bastoni.mp3"},
-  {nome:"Otto di Bastoni", file:"38_Otto_di_bastoni.jpg", audio:"Otto_di_bastoni.mp3"},
-  {nome:"Nove di Bastoni", file:"39_Nove_di_bastoni.jpg", audio:"Nove_di_bastoni.mp3"},
-  {nome:"Dieci di Bastoni", file:"40_Dieci_di_bastoni.jpg", audio:"Dieci_di_bastoni.mp3"}
+    // DENARI
+    {nome:"Asso di Denari", file:"01_Asso_di_denari.jpg", audio:"Asso_di_denari.mp3"},
+    {nome:"Due di Denari", file:"02_Due_di_denari.jpg", audio:"Due_di_denari.mp3"},
+    {nome:"Tre di Denari", file:"03_Tre_di_denari.jpg", audio:"Tre_di_denari.mp3"},
+    {nome:"Quattro di Denari", file:"04_Quattro_di_denari.jpg", audio:"Quattro_di_denari.mp3"},
+    {nome:"Cinque di Denari", file:"05_Cinque_di_denari.jpg", audio:"Cinque_di_denari.mp3"},
+    {nome:"Sei di Denari", file:"06_Sei_di_denari.jpg", audio:"Sei_di_denari.mp3"},
+    {nome:"Sette di Denari", file:"07_Sette_di_denari.jpg", audio:"Sette_di_denari.mp3"},
+    {nome:"Otto di Denari", file:"08_Otto_di_denari.jpg", audio:"Otto_di_denari.mp3"},
+    {nome:"Nove di Denari", file:"09_Nove_di_denari.jpg", audio:"Nove_di_denari.mp3"},
+    {nome:"Dieci di Denari", file:"10_Dieci_di_denari.jpg", audio:"Dieci_di_denari.mp3"},
+    // COPPE
+    {nome:"Asso di Coppe", file:"11_Asso_di_coppe.jpg", audio:"Asso_di_coppe.mp3"},
+    {nome:"Due di Coppe", file:"12_Due_di_coppe.jpg", audio:"Due_di_coppe.mp3"},
+    {nome:"Tre di Coppe", file:"13_Tre_di_coppe.jpg", audio:"Tre_di_coppe.mp3"},
+    {nome:"Quattro di Coppe", file:"14_Quattro_di_coppe.jpg", audio:"Quattro_di_coppe.mp3"},
+    {nome:"Cinque di Coppe", file:"15_Cinque_di_coppe.jpg", audio:"Cinque_di_coppe.mp3"},
+    {nome:"Sei di Coppe", file:"16_Sei_di_coppe.jpg", audio:"Sei_di_coppe.mp3"},
+    {nome:"Sette di Coppe", file:"17_Sette_di_coppe.jpg", audio:"Sette_di_coppe.mp3"},
+    {nome:"Otto di Coppe", file:"18_Otto_di_coppe.jpg", audio:"Otto_di_coppe.mp3"},
+    {nome:"Nove di Coppe", file:"19_Nove_di_coppe.jpg", audio:"Nove_di_coppe.mp3"},
+    {nome:"Dieci di Coppe", file:"20_Dieci_di_coppe.jpg", audio:"Dieci_di_coppe.mp3"},
+    // SPADE
+    {nome:"Asso di Spade", file:"21_Asso_di_spade.jpg", audio:"Asso_di_spade.mp3"},
+    {nome:"Due di Spade", file:"22_Due_di_spade.jpg", audio:"Due_di_spade.mp3"},
+    {nome:"Tre di Spade", file:"23_Tre_di_spade.jpg", audio:"Tre_di_spade.mp3"},
+    {nome:"Quattro di Spade", file:"24_Quattro_di_spade.jpg", audio:"Quattro_di_spade.mp3"},
+    {nome:"Cinque di Spade", file:"25_Cinque_di_spade.jpg", audio:"Cinque_di_spade.mp3"},
+    {nome:"Sei di Spade", file:"26_Sei_di_spade.jpg", audio:"Sei_di_spade.mp3"},
+    {nome:"Sette di Spade", file:"27_Sette_di_spade.jpg", audio:"Sette_di_spade.mp3"},
+    {nome:"Otto di Spade", file:"28_Otto_di_spade.jpg", audio:"Otto_di_spade.mp3"},
+    {nome:"Nove di Spade", file:"29_Nove_di_spade.jpg", audio:"Nove_di_spade.mp3"},
+    {nome:"Dieci di Spade", file:"30_Dieci_di_spade.jpg", audio:"Dieci_di_spade.mp3"},
+    // BASTONI
+    {nome:"Asso di Bastoni", file:"31_Asso_di_bastoni.jpg", audio:"Asso_di_bastoni.mp3"},
+    {nome:"Due di Bastoni", file:"32_Due_di_bastoni.jpg", audio:"Due_di_bastoni.mp3"},
+    {nome:"Tre di Bastoni", file:"33_Tre_di_bastoni.jpg", audio:"Tre_di_bastoni.mp3"},
+    {nome:"Quattro di Bastoni", file:"34_Quattro_di_bastoni.jpg", audio:"Quattro_di_bastoni.mp3"},
+    {nome:"Cinque di Bastoni", file:"35_Cinque_di_bastoni.jpg", audio:"Cinque_di_bastoni.mp3"},
+    {nome:"Sei di Bastoni", file:"36_Sei_di_bastoni.jpg", audio:"Sei_di_bastoni.mp3"},
+    {nome:"Sette di Bastoni", file:"37_Sette_di_bastoni.jpg", audio:"Sette_di_bastoni.mp3"},
+    {nome:"Otto di Bastoni", file:"38_Otto_di_bastoni.jpg", audio:"Otto_di_bastoni.mp3"},
+    {nome:"Nove di Bastoni", file:"39_Nove_di_bastoni.jpg", audio:"Nove_di_bastoni.mp3"},
+    {nome:"Dieci di Bastoni", file:"40_Dieci_di_bastoni.jpg", audio:"Dieci_di_bastoni.mp3"}
 ];
 
-let mazzo=[...carte], storico=[], audio=null;
-
-function pescaCarta(){
-  if(!mazzo.length) return alert("Mazzo finito");
-  const c=mazzo.splice(Math.random()*mazzo.length|0,1)[0];
-  storico.push(c);
-  cartaImg.src="static/"+c.file;
-  cartaNome.textContent=c.nome;
-  audio && audio.pause();
-  audio=new Audio("static/"+c.audio);
-  audio.play();
+function initMazzo() {
+    mazzo = [...carte];
+    storico = [];
+    const img = document.getElementById("cartaImg");
+    img.src = "static/Carte_Napoletane_retro.jpg";
+    img.alt = "Retro della carta";
+    img.classList.add("retro");
+    img.classList.remove("nuova");
+    document.getElementById("cartaNome").textContent = "Mazzo pronto!";
+    aggiornaStorico();
 }
 
-function resetMazzo(){ mazzo=[...carte]; }
-
-async function scaricaOffline(){
-  for(const c of carte){
-    await fetch("static/"+c.file);
-    await fetch("static/"+c.audio);
-  }
-  alert("✔ Tutte le carte salvate offline");
+function pescaCarta() {
+    if (mazzo.length === 0) {
+        showAlert("🎴 Il mazzo è finito! Premi 'Reset Mazzo' per ricominciare.");
+        return;
+    }
+    const i = Math.floor(Math.random() * mazzo.length);
+    const carta = mazzo.splice(i,1)[0];
+    storico.push(carta);
+    document.getElementById("cartaImg").src = "static/" + carta.file;
+    document.getElementById("cartaImg").alt = carta.nome;
+    document.getElementById("cartaNome").textContent = carta.nome;
+    if(audioCorrente) audioCorrente.pause();
+    audioCorrente = new Audio("static/" + carta.audio);
+    audioCorrente.play();
+    aggiornaStorico();
 }
 
-if("serviceWorker"in navigator){
-  navigator.serviceWorker.register("service-worker.js");
+function aggiornaStorico() {
+    const list = document.getElementById("storico");
+    list.innerHTML = "";
+    const ultimeCarte = storico.slice(-10).reverse();
+    ultimeCarte.forEach(c => {
+        const li = document.createElement("li");
+        const img = document.createElement("img");
+        img.src = "static/" + c.file;
+        img.alt = c.nome;
+        img.width = 50;
+        li.appendChild(img);
+        list.appendChild(li);
+    });
+}
+
+function resetMazzo() { initMazzo(); }
+function showAlert(msg) { 
+    const alertDiv = document.getElementById("customAlert");
+    document.getElementById("alertMessage").textContent = msg;
+    alertDiv.classList.remove("hidden");
+}
+function closeAlert() { document.getElementById("customAlert").classList.add("hidden"); }
+
+initMazzo();
+
+// 🔹 Service Worker
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+    .then(() => console.log("Service Worker registrato!"))
+    .catch(err => console.error("Errore Service Worker:", err));
 }
 </script>
+
 </body>
 </html>
