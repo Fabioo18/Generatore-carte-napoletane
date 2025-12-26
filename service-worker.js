@@ -1,6 +1,15 @@
-const CACHE_NAME = "carte-napoletane-v18";
+const CACHE_NAME = "carte-napoletane-v19";
 
-// Solo immagini seguono lo schema valori + semi
+// CORE assets
+const CORE_ASSETS = [
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/static/sfondo.jpg",
+  "/static/Carte_Napoletane_retro.jpg"
+];
+
+// Immagini carte
 const semi = ['denari','coppe','spade','bastoni'];
 const valori = ['01_Asso','02_Due','03_Tre','04_Quattro','05_Cinque','06_Sei','07_Sette','08_Otto','09_Nove','10_Dieci'];
 
@@ -27,52 +36,28 @@ const audioFiles = [
 
 audioFiles.forEach(f => ASSETS.push(`/static/${f}`));
 
-// Aggiungi CORE_ASSETS
-const CORE_ASSETS = ["/","/index.html","/static/sfondo.jpg","/static/Carte_Napoletane_retro.jpg"];
+// Combina tutto
 ASSETS = [...CORE_ASSETS, ...ASSETS];
 
-// Funzione per cache-are tutti i file uno alla volta
+// Funzione per cache sicuro
 async function cacheAllFiles() {
   const cache = await caches.open(CACHE_NAME);
   for (const url of ASSETS) {
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP error! ${response.status}`);
-      await cache.put(url, response.clone());
+      const resp = await fetch(url, { cache: "no-cache" }); // forza rete per evitare 304 problematici
+      if (!resp.ok && resp.status !== 304) throw new Error(`HTTP error! ${resp.status}`);
+      await cache.put(url, resp.clone());
       console.log("✅ Cached:", url);
     } catch (err) {
-      console.error("❌ Failed to cache:", url, err);
+      console.warn("❌ Failed to cache:", url, err);
     }
   }
 }
 
-// INSTALL: cache iniziale sicura
+// INSTALL
 self.addEventListener("install", event => {
   event.waitUntil(cacheAllFiles());
   self.skipWaiting();
-});
-
-// FETCH: cache-first + fallback
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request).then(async cached => {
-      if (cached) return cached;
-      try {
-        const resp = await fetch(event.request);
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(event.request, resp.clone());
-        return resp;
-      } catch {
-        if (event.request.destination === "image") {
-          return caches.match("/static/Carte_Napoletane_retro.jpg");
-        }
-        if (event.request.destination === "audio") {
-          return new Response("", { status: 404 });
-        }
-        return new Response("", { status: 404 });
-      }
-    })
-  );
 });
 
 // ACTIVATE: rimuove vecchie cache
@@ -83,4 +68,37 @@ self.addEventListener("activate", event => {
     )
   );
   self.clients.claim();
+});
+
+// FETCH: cache-first con fallback
+self.addEventListener("fetch", event => {
+  event.respondWith(
+    caches.match(event.request).then(async cached => {
+      if (cached) return cached;
+
+      try {
+        const resp = await fetch(event.request);
+        if (resp.ok || resp.status === 304) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, resp.clone());
+          return resp;
+        } else {
+          throw new Error("HTTP status not OK: " + resp.status);
+        }
+      } catch (err) {
+        console.warn("Network error, fallback:", event.request.url, err);
+
+        // fallback immagini
+        if (event.request.destination === "image") {
+          return caches.match("/static/Carte_Napoletane_retro.jpg");
+        }
+        // fallback audio
+        if (event.request.destination === "audio") {
+          return new Response("", { status: 404 });
+        }
+        // fallback generico
+        return new Response("Offline", { status: 503, statusText: "Service Worker Offline" });
+      }
+    })
+  );
 });
