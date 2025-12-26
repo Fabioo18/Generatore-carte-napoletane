@@ -1,4 +1,4 @@
-const CACHE_NAME = "carte-napoletane-v8";
+const CACHE_NAME = "carte-napoletane-v9";
 
 // asset fondamentali (pochi e sicuri)
 const CORE_ASSETS = [
