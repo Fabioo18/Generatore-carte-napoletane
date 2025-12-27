@@ -1,14 +1,12 @@
-const CACHE_NAME = "carte-napoletane-v21";
+const CACHE_NAME = "carte-napoletane-v22";
 
+// File core, immagini, audio e offline.html
 const CORE_ASSETS = [
-  "/",
-  "/index.html",
-  "/manifest.json",
+  "/", "/index.html", "/manifest.json", "/offline.html",
   "/static/sfondo.jpg",
   "/static/Carte_Napoletane_retro.jpg"
 ];
 
-// Immagini carte
 const IMAGE_ASSETS = [
   "/static/01_Asso_di_denari.jpg","/static/02_Due_di_denari.jpg","/static/03_Tre_di_denari.jpg",
   "/static/04_Quattro_di_denari.jpg","/static/05_Cinque_di_denari.jpg","/static/06_Sei_di_denari.jpg",
@@ -26,7 +24,6 @@ const IMAGE_ASSETS = [
   "/static/40_Dieci_di_bastoni.jpg"
 ];
 
-// Audio carte (esattamente come fornito)
 const AUDIO_ASSETS = [
   "Asso_di_denari.mp3","Due_di_denari.mp3","Tre_di_denari.mp3","Quattro_di_denari.mp3","Cinque_di_denari.mp3",
   "Sei_di_denari.mp3","Sette_di_denari.mp3","Otto_di_denari.mp3","Nove_di_denari.mp3","Dieci_di_denari.mp3",
@@ -36,9 +33,9 @@ const AUDIO_ASSETS = [
   "Sei_di_spade.mp3","Sette_di_spade.mp3","Otto_di_spade.mp3","Nove_di_spade.mp3","Dieci_di_spade.mp3",
   "Asso_di_bastoni.mp3","Due_di_bastoni.mp3","Tre_di_bastoni.mp3","Quattro_di_bastoni.mp3","Cinque_di_bastoni.mp3",
   "Sei_di_bastoni.mp3","Sette_di_bastoni.mp3","Otto_di_bastoni.mp3","Nove_di_bastoni.mp3","Dieci_di_bastoni.mp3"
-].map(f => `/static/${f}`); // aggiungi il prefisso /static
+].map(f => `/static/${f}`);
 
-// Combina tutto
+// Combina tutti gli assets
 const ASSETS = [...CORE_ASSETS, ...IMAGE_ASSETS, ...AUDIO_ASSETS];
 
 async function cacheAllFiles() {
@@ -54,11 +51,13 @@ async function cacheAllFiles() {
   }
 }
 
+// INSTALL
 self.addEventListener("install", event => {
   event.waitUntil(cacheAllFiles());
   self.skipWaiting();
 });
 
+// ACTIVATE
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -68,6 +67,7 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
+// FETCH
 self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(async cached => {
@@ -84,19 +84,18 @@ self.addEventListener("fetch", event => {
       } catch (err) {
         console.warn("Network error, fallback:", event.request.url, err);
 
-        // fallback per root o HTML
+        // fallback offline per HTML/navigation
         if (event.request.mode === "navigate") {
-          return caches.match("/index.html");
+          return caches.match("/offline.html");
         }
-        // fallback per immagini
+        // fallback immagini
         if (event.request.destination === "image") {
           return caches.match("/static/Carte_Napoletane_retro.jpg");
         }
-        // fallback per audio
+        // fallback audio
         if (event.request.destination === "audio") {
           return new Response("", { status: 404 });
         }
-
         // fallback generico
         return new Response("Offline", { status: 503, statusText: "Service Worker Offline" });
       }
