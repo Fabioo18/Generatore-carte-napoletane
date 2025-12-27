@@ -253,6 +253,16 @@ function showAlert(msg) {
 function closeAlert() { document.getElementById("customAlert").classList.add("hidden"); }
 
 initMazzo();
+
+// ---- REGISTRAZIONE SERVICE WORKER ----
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => console.log('✅ Service Worker registrato:', reg))
+        .catch(err => console.error('❌ Registrazione Service Worker fallita:', err));
+    });
+}
+
 </script>
 
 </body>
