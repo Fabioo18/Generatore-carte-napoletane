@@ -16,7 +16,7 @@
     {
       "src": "icons/web-app-manifest-144x144.png",
       "sizes": "144x144",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {

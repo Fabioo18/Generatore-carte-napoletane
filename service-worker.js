@@ -1,6 +1,5 @@
-const CACHE_NAME = "carte-napoletane-v20";
+const CACHE_NAME = "carte-napoletane-v21";
 
-// CORE assets
 const CORE_ASSETS = [
   "/",
   "/index.html",
@@ -42,7 +41,6 @@ const AUDIO_ASSETS = [
 // Combina tutto
 const ASSETS = [...CORE_ASSETS, ...IMAGE_ASSETS, ...AUDIO_ASSETS];
 
-// Funzione cache
 async function cacheAllFiles() {
   const cache = await caches.open(CACHE_NAME);
   for (const url of ASSETS) {
@@ -50,20 +48,17 @@ async function cacheAllFiles() {
       const resp = await fetch(url, { cache: "no-cache" });
       if (!resp.ok && resp.status !== 304) throw new Error(`HTTP error ${resp.status}`);
       await cache.put(url, resp.clone());
-      console.log("✅ Cached:", url);
     } catch (err) {
-      console.warn("❌ Failed to cache:", url, err);
+      console.warn("Failed to cache:", url, err);
     }
   }
 }
 
-// INSTALL
 self.addEventListener("install", event => {
   event.waitUntil(cacheAllFiles());
   self.skipWaiting();
 });
 
-// ACTIVATE
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -73,7 +68,6 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
-// FETCH
 self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(async cached => {
@@ -89,8 +83,21 @@ self.addEventListener("fetch", event => {
         throw new Error(`HTTP status ${resp.status}`);
       } catch (err) {
         console.warn("Network error, fallback:", event.request.url, err);
-        if (event.request.destination === "image") return caches.match("/static/Carte_Napoletane_retro.jpg");
-        if (event.request.destination === "audio") return new Response("", { status: 404 });
+
+        // fallback per root o HTML
+        if (event.request.mode === "navigate") {
+          return caches.match("/index.html");
+        }
+        // fallback per immagini
+        if (event.request.destination === "image") {
+          return caches.match("/static/Carte_Napoletane_retro.jpg");
+        }
+        // fallback per audio
+        if (event.request.destination === "audio") {
+          return new Response("", { status: 404 });
+        }
+
+        // fallback generico
         return new Response("Offline", { status: 503, statusText: "Service Worker Offline" });
       }
     })
